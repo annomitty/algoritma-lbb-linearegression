@@ -1,0 +1,77 @@
+---
+title: "LBB-Regression_Chris"
+author: "annomitty"
+date: "8/29/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Call Library yang dibutuhkan.
+```{r}
+library(dplyr)
+library(ggplot2)
+library(GGally)
+```
+
+To Read Data.
+```{r}
+admision_raw <- read.csv("Admission_Predict.csv")
+admision_new <- read.csv("Admission_Predict_Ver1.1.csv")
+str(admision_raw)
+str(admision_new)
+```
+dari data diatas yang menjadi target adalah Chance.of.Admit.
+
+Tahap pertama adalah untuk mengetahui korelasi masing-masing predictor terhadap target.
+
+```{r}
+ggcorr(admision_raw, label=T)
+```
+berdasarkan "ggcorr" diketahui bahwa seluruh predictor, memilih korelasi yang relatif tinggi terhadap target.
+pembuatan linear regression ini, akan dibuat dengan menggunakan metode stepwise,
+dicoba dengan 3 cara untuk mendapatkan formula yang nilai rsquared terbaik.
+- backward, forward, dan both.
+
+```{r}
+model_all <- lm(Chance.of.Admit ~ ., data=admision_raw)
+model_none <- lm(Chance.of.Admit ~ 1, data=admision_raw)
+model_backward <- step(object = model_all, direction = "backward")
+model_forward <- step(object = model_none, 
+                  scope = list(lower = model_none, upper = model_all), 
+                  direction = "forward")
+model_both <- step(object = model_none, 
+                  scope = list(lower = model_none, upper = model_all), 
+                  direction = "both")
+```
+
+Pengetesan validasi dari ketiga model dengan menggunakan R Squared.
+
+```{r}
+summary(model_backward)
+summary(model_forward)
+summary(model_both)
+```
+
+```{r}
+summary(model_backward)$adj.r.squared
+summary(model_forward)$adj.r.squared
+summary(model_both)$adj.r.squared
+```
+Berdasarkan RSquared ketiga model tersebut memiliki value yang sama, di 0.815, oleh karena itu akan dilanjutkan dengan menentukan MAPE.
+Membuat Prediction untuk ke-3 model diatas.
+
+```{r}
+predict_model_backward <- predict(model_backward, newdata = admision_raw)
+predict_model_forward <- predict(model_forward, newdata = admision_raw)
+predict_model_both <- predict(model_both, newdata = admision_raw)
+
+MAPE(predict_model_backward, admision_raw$Chance.of.Admit)*100
+MAPE(predict_model_forward, admision_raw$Chance.of.Admit)*100
+MAPE(predict_model_both, admision_raw$Chance.of.Admit)*100
+```
+Evaluasi dari ke-3 model dengan menggunakan Adj.squared dan MAP menghasilakn nilai yang sama, untuk convenience yang dipilih adalah model both.
+berikut adalah plot dari model_both, dengan expectasi error sebesar 7.13%
+
